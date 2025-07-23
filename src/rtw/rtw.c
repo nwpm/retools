@@ -2,9 +2,10 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
-int rtw_set_flags(RTWFlags *flags, int argc, char **argv) {
+int rtw_parse_flags_from_argv(RTWFlags *flags, int argc, char **argv) {
 
   int c;
 
@@ -23,7 +24,7 @@ int rtw_set_flags(RTWFlags *flags, int argc, char **argv) {
       flags->wflag = 1;
       break;
     case '?':
-      printf("Try rtw --help for more information\n");
+      fprintf(stderr, "Try rtw --help for more information\n");
       return -1;
     }
   }
@@ -38,7 +39,7 @@ int rtw_set_flags(RTWFlags *flags, int argc, char **argv) {
   return 0;
 }
 
-RTWBuffer *rtw_create_input_buf() {
+static RTWBuffer *rtw_create_input_buf() {
 
   RTWBuffer *input_buf = malloc(sizeof(RTWBuffer));
 
@@ -46,7 +47,7 @@ RTWBuffer *rtw_create_input_buf() {
     return NULL;
 
   input_buf->size = 0;
-  input_buf->capacity = RTW_BUF_CAPACITY;
+  input_buf->capacity = RTW_DEFAULT_BUF_CAPACITY;
 
   char *raw_input = malloc(input_buf->capacity);
 
@@ -58,7 +59,7 @@ RTWBuffer *rtw_create_input_buf() {
   return input_buf;
 }
 
-int rtw_resize_buffer(RTWBuffer *input_buf) {
+static int rtw_ensure_buf_capacity(RTWBuffer *input_buf) {
 
   char *new_raw_buffer = realloc(input_buf->buffer, input_buf->capacity * 2);
 
@@ -66,10 +67,12 @@ int rtw_resize_buffer(RTWBuffer *input_buf) {
     return -1;
   }
 
+  input_buf->capacity *= 2;
+
   return 0;
 }
 
-int rtw_resize_buf_arr(RTWBufArray *buf_arr) {
+static int rtw_ensure_buf_arr_capacity(RTWBufArray *buf_arr) {
 
   RTWBuffer **new_arr_data = realloc(buf_arr->data, buf_arr->capacity * 2);
 
@@ -87,19 +90,22 @@ RTWBufArray *rtw_create_buffer_arr() {
   if (!buf_arr)
     return NULL;
 
-  RTWBuffer **data = malloc(sizeof(RTWBuffer *) * RTW_BUF_ARR_CAPACITY);
+  RTWBuffer **data =
+      malloc(sizeof(RTWBuffer *) * RTW_DEFAULT_BUF_AND_ARRAY_CAPACITY);
 
-  if (!data)
+  if (!data) {
+    free(buf_arr);
     return NULL;
+  }
 
   buf_arr->size = 0;
-  buf_arr->capacity = RTW_BUF_ARR_CAPACITY;
+  buf_arr->capacity = RTW_DEFAULT_BUF_AND_ARRAY_CAPACITY;
   buf_arr->data = data;
 
   return buf_arr;
 }
 
-RTWBuffer *rtw_read_stream(FILE *file_stream) {
+static RTWBuffer *rtw_read_stream(FILE *file_stream) {
 
   RTWBuffer *input_buf = rtw_create_input_buf();
 
@@ -111,7 +117,7 @@ RTWBuffer *rtw_read_stream(FILE *file_stream) {
 
   while ((c = fgetc(file_stream)) != EOF) {
     if (input_buf->size + 1 > input_buf->capacity) {
-      if (rtw_resize_buffer(input_buf) != 0)
+      if (rtw_ensure_buf_capacity(input_buf) != 0)
         return NULL;
     }
 
@@ -136,14 +142,16 @@ int rtw_read_from_files(RTWBufArray *buf_arr, int argc, char **argv) {
   for (int i = optind; i < argc; ++i) {
 
     if (buf_arr->size + 1 > buf_arr->capacity) {
-      if (rtw_resize_buf_arr(buf_arr) != 0)
+      if (rtw_ensure_buf_arr_capacity(buf_arr) != 0)
         return -1;
     }
 
     FILE *file_stream = fopen(argv[i], "r");
 
-    if (!file_stream)
+    if (!file_stream){
+      fprintf(stderr, "%s : no such file or directory\n", argv[i]);
       return -1;
+    }
 
     buf_arr->data[j] = rtw_read_stream(file_stream);
     buf_arr->size++;
@@ -160,7 +168,7 @@ int rtw_read_from_files(RTWBufArray *buf_arr, int argc, char **argv) {
   return 0;
 }
 
-size_t rtw_count_newlines(const RTWBuffer *input_buf) {
+static size_t rtw_count_newlines(const RTWBuffer *input_buf) {
 
   size_t res = 0;
 
@@ -172,7 +180,7 @@ size_t rtw_count_newlines(const RTWBuffer *input_buf) {
   return res;
 }
 
-size_t rtw_count_words(const RTWBuffer *input_buf) {
+static size_t rtw_count_words(const RTWBuffer *input_buf) {
 
   size_t res = 0;
   int in_word = 0;
@@ -191,19 +199,19 @@ size_t rtw_count_words(const RTWBuffer *input_buf) {
   return res;
 }
 
-RTWResult *rtw_create_result() {
+static RTWResult *rtw_create_result() {
 
-  RTWResult *res = malloc(sizeof(RTWResult));
+  RTWResult *result = malloc(sizeof(RTWResult));
 
-  if (!res)
+  if (!result)
     return NULL;
 
-  res->bytes = 0;
-  res->chars = 0;
-  res->newlines = 0;
-  res->words = 0;
+  result->bytes = 0;
+  result->chars = 0;
+  result->newlines = 0;
+  result->words = 0;
 
-  return res;
+  return result;
 }
 
 RTWResultArray *rtw_create_result_arr() {
@@ -213,36 +221,42 @@ RTWResultArray *rtw_create_result_arr() {
   if (!res_arr)
     return NULL;
 
-  RTWResult **data = malloc(sizeof(RTWResult *) * RTW_BUF_ARR_CAPACITY);
+  RTWResult **data =
+      malloc(sizeof(RTWResult *) * RTW_DEFAULT_BUF_AND_ARRAY_CAPACITY);
 
-  if (!data)
+  if (!data) {
+    free(res_arr);
     return NULL;
+  }
 
   res_arr->size = 0;
-  res_arr->capacity = RTW_BUF_ARR_CAPACITY;
+  res_arr->capacity = RTW_DEFAULT_BUF_AND_ARRAY_CAPACITY;
   res_arr->data = data;
 
   return res_arr;
 }
 
-int rtw_resize_res_arr(RTWResultArray *res_arr) {
+static int rtw_ensure_res_arr_capacity(RTWResultArray *res_arr) {
 
   RTWResult **new_arr_data = realloc(res_arr->data, res_arr->capacity * 2);
 
-  if (!new_arr_data) {
+  if (!new_arr_data)
     return -1;
-  }
+
+  res_arr->capacity *= 2;
 
   return 0;
 }
 
 int rtw_parse_input_buff(RTWBufArray *buf_arr, const RTWFlags *flags,
-                         RTWResultArray *res_arr) {
+                         RTWResultArray *res_arr, char **argv,
+                         int read_from_files) {
 
+  size_t j = optind;
   for (size_t i = 0; i < buf_arr->size; ++i) {
 
     if (res_arr->size + 1 > res_arr->capacity) {
-      if (rtw_resize_res_arr(res_arr) != 0)
+      if (rtw_ensure_res_arr_capacity(res_arr) != 0)
         return -1;
     }
 
@@ -264,6 +278,8 @@ int rtw_parse_input_buff(RTWBufArray *buf_arr, const RTWFlags *flags,
       res->words = rtw_count_words(buf_arr->data[i]);
     }
 
+    res->file_name = (read_from_files) ? strdup(argv[j++]) : strdup("stdin");
+
     res_arr->data[i] = res;
     res_arr->size++;
   }
@@ -273,75 +289,86 @@ int rtw_parse_input_buff(RTWBufArray *buf_arr, const RTWFlags *flags,
 
 void rtw_buf_arr_free(RTWBufArray *buf_array) {
 
+  if (!buf_array)
+    return;
+
   for (size_t i = 0; i < buf_array->size; ++i) {
     free(buf_array->data[i]->buffer);
     free(buf_array->data[i]);
   }
 
+  free(buf_array->data);
   free(buf_array);
 }
 
 void rtw_res_arr_free(RTWResultArray *res_array) {
 
+  if (!res_array)
+    return;
+
   for (size_t i = 0; i < res_array->size; ++i) {
+    free(res_array->data[i]->file_name);
     free(res_array->data[i]);
   }
 
+  free(res_array->data);
   free(res_array);
 }
 
-void rtw_print_result(RTWResultArray *res_arr) {
+static void rtw_print_result(RTWResultArray *res_arr) {
 
   for (size_t i = 0; i < res_arr->size; ++i) {
+    printf("\n%s: ", res_arr->data[i]->file_name);
     if (res_arr->data[i]->bytes)
-      printf("\n%zu bytes: %zu", i + 1, res_arr->data[i]->bytes);
+      printf(" bytes: %zu", res_arr->data[i]->bytes);
     if (res_arr->data[i]->chars)
-      printf("\t%zu chars: %zu", i + 1, res_arr->data[i]->chars);
+      printf(" chars: %zu", res_arr->data[i]->chars);
     if (res_arr->data[i]->newlines)
-      printf("\t%zu newlines: %zu", i + 1, res_arr->data[i]->newlines);
+      printf(" newlines: %zu", res_arr->data[i]->newlines);
     if (res_arr->data[i]->words)
-      printf("\t%zu words: %zu", i + 1, res_arr->data[i]->words);
-    printf("\n");
+      printf(" words: %zu", res_arr->data[i]->words);
   }
+  printf("\n");
 }
 
 int main(int argc, char **argv) {
 
+  int exit_status = 0;
+
   RTWFlags flags = {0};
 
-  if (rtw_set_flags(&flags, argc, argv) != 0)
+  if (rtw_parse_flags_from_argv(&flags, argc, argv) != 0)
     return -1;
 
   RTWBufArray *buf_array = rtw_create_buffer_arr();
-
   if (!buf_array)
     return -1;
 
-  int read_status = 0;
-
-  if (optind < argc) {
-    read_status = rtw_read_from_files(buf_array, argc, argv);
-  } else {
-    read_status = rtw_read_from_stdin(buf_array);
+  RTWResultArray *res_arr = rtw_create_result_arr();
+  if (!res_arr) {
+    exit_status = -1;
+    goto cleanup;
   }
+
+  int read_from_files = (optind < argc);
+  int read_status = read_from_files ? rtw_read_from_files(buf_array, argc, argv)
+                                    : rtw_read_from_stdin(buf_array);
 
   if (read_status != 0) {
-    rtw_buf_arr_free(buf_array);
-    return -1;
+    exit_status = -1;
+    goto cleanup;
   }
 
-  RTWResultArray *res_arr = rtw_create_result_arr();
-
-  if (!res_arr) {
-    rtw_buf_arr_free(buf_array);
-    return -1;
+  if (rtw_parse_input_buff(buf_array, &flags, res_arr, argv, read_from_files) !=
+      0) {
+    exit_status = -1;
+    goto cleanup;
   }
-
-  rtw_parse_input_buff(buf_array, &flags, res_arr);
 
   rtw_print_result(res_arr);
 
+cleanup:
   rtw_buf_arr_free(buf_array);
-
-  return 0;
+  rtw_res_arr_free(res_arr);
+  return exit_status;
 }

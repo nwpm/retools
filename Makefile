@@ -13,10 +13,13 @@ SRC_DIR = src
 
 # === TARGETS ===
 
-.PHONY: rtw unity clbuild
+.PHONY: rtw rcat unity clbuild
 
 rtw:
 	$(MAKE) -C src/rtw
+
+rcat:
+	$(MAKE) -C src/rcat
 
 unity: $(UNITY_BUILD)
 	cd $(UNITY_BUILD) && cmake ../../$(UNITY_DIR)

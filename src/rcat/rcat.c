@@ -45,8 +45,7 @@ static int rcat_read_and_print_stream(FILE *stream, RCatFlags *flags,
   int prev_was_empty = 0;
   int is_empty_line = 0;
 
-  // TODO: feof error check
-  while (getline(&line, &init_size, stream) != -1) {
+  while ((getline(&line, &init_size, stream) != -1) && !feof(stream)) {
 
     is_empty_line = (line[0] == '\n' && line[1] == '\0'); 
 
@@ -57,7 +56,6 @@ static int rcat_read_and_print_stream(FILE *stream, RCatFlags *flags,
       prev_was_empty = is_empty_line;
     }
 
-    // TODO: remove printf and use fwrite
     if ((flags->bflag && !is_empty_line) ||
         (!flags->bflag && flags->nflag)) {
       printf("\t%d  ", (*linecounter)++);
@@ -98,7 +96,7 @@ int rcat(int argc, char **argv, RCatFlags *flags) {
 
       //TODO: remove fprintf and use perror
       if (!file_stream) {
-        fprintf(stderr, "%s : no such file or directory\n", argv[i]);
+        perror("Error opening file");
         return -1;
       }
 

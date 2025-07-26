@@ -11,22 +11,22 @@ int rcat_parse_flags_from_argv(RCatFlags *flags, int argc, char **argv) {
   while ((c = getopt(argc, argv, "nbsvTE")) != -1) {
     switch (c) {
     case 'E':
-      flags->Eflag = 1;
+      flags->Eflag = true;
       break;
     case 'n':
-      flags->nflag = 1;
+      flags->nflag = true;
       break;
     case 'b':
-      flags->bflag = 1;
+      flags->bflag = true;
       break;
     case 'v':
-      flags->vflag = 1;
+      flags->vflag = true;
       break;
     case 'T':
-      flags->Tflag = 1;
+      flags->Tflag = true;
       break;
     case 's':
-      flags->sflag = 1;
+      flags->sflag = true;
       break;
     case '?':
       fprintf(stderr, "Try rtw --help for more information\n");
@@ -37,13 +37,13 @@ int rcat_parse_flags_from_argv(RCatFlags *flags, int argc, char **argv) {
   return 0;
 }
 
-static int rcat_read_and_print_stream(FILE *stream, RCatFlags *flags,
+static void rcat_read_and_print_stream(FILE *stream, RCatFlags *flags,
                                       int *linecounter) {
 
   char *line = NULL;
   size_t init_size = 0;
-  int prev_was_empty = 0;
-  int is_empty_line = 0;
+  bool prev_was_empty = false;
+  bool is_empty_line = false;
 
   while ((getline(&line, &init_size, stream) != -1) && !feof(stream)) {
 
@@ -74,8 +74,6 @@ static int rcat_read_and_print_stream(FILE *stream, RCatFlags *flags,
   }
 
   free(line);
-
-  return 0;
 }
 
 int rcat(int argc, char **argv, RCatFlags *flags) {
@@ -94,7 +92,6 @@ int rcat(int argc, char **argv, RCatFlags *flags) {
 
       FILE *file_stream = fopen(argv[i], "r");
 
-      //TODO: remove fprintf and use perror
       if (!file_stream) {
         perror("Error opening file");
         return -1;

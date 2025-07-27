@@ -12,16 +12,16 @@ int rtw_parse_flags_from_argv(RTWFlags *flags, int argc, char **argv) {
   while ((c = getopt(argc, argv, "cmlw")) != -1) {
     switch (c) {
     case 'c':
-      flags->cflag = 1;
+      flags->cflag = true;
       break;
     case 'm':
-      flags->mflag = 1;
+      flags->mflag = true;
       break;
     case 'l':
-      flags->lflag = 1;
+      flags->lflag = true;
       break;
     case 'w':
-      flags->wflag = 1;
+      flags->wflag = true;
       break;
     case '?':
       fprintf(stderr, "Try rtw --help for more information\n");
@@ -30,10 +30,10 @@ int rtw_parse_flags_from_argv(RTWFlags *flags, int argc, char **argv) {
   }
 
   if (!(flags->cflag || flags->lflag || flags->mflag || flags->wflag)) {
-    flags->cflag = 1;
-    flags->lflag = 1;
-    flags->mflag = 1;
-    flags->wflag = 1;
+    flags->cflag = true;
+    flags->lflag = true;
+    flags->mflag = true;
+    flags->wflag = true;
   }
 
   return 0;
@@ -63,9 +63,8 @@ static int rtw_ensure_buf_capacity(RTWBuffer *input_buf) {
 
   char *new_raw_buffer = realloc(input_buf->buffer, input_buf->capacity * 2);
 
-  if (!new_raw_buffer) {
+  if (!new_raw_buffer)
     return -1;
-  }
 
   input_buf->capacity *= 2;
 
@@ -76,9 +75,8 @@ static int rtw_ensure_buf_arr_capacity(RTWBufArray *buf_arr) {
 
   RTWBuffer **new_arr_data = realloc(buf_arr->data, buf_arr->capacity * 2);
 
-  if (!new_arr_data) {
+  if (!new_arr_data)
     return -1;
-  }
 
   return 0;
 }
@@ -149,7 +147,7 @@ int rtw_read_from_files(RTWBufArray *buf_arr, int argc, char **argv) {
     FILE *file_stream = fopen(argv[i], "r");
 
     if (!file_stream){
-      fprintf(stderr, "%s : no such file or directory\n", argv[i]);
+      perror("Error opening file");
       return -1;
     }
 
@@ -265,18 +263,17 @@ int rtw_parse_input_buff(RTWBufArray *buf_arr, const RTWFlags *flags,
     if (!res)
       return -1;
 
-    if (flags->cflag) {
+    if (flags->cflag) 
       res->chars = buf_arr->data[i]->size;
-    }
-    if (flags->lflag) {
+
+    if (flags->lflag)
       res->newlines = rtw_count_newlines(buf_arr->data[i]);
-    }
-    if (flags->mflag) {
+    
+    if (flags->mflag)
       res->bytes = buf_arr->data[i]->size;
-    }
-    if (flags->wflag) {
+
+    if (flags->wflag)
       res->words = rtw_count_words(buf_arr->data[i]);
-    }
 
     res->file_name = (read_from_files) ? strdup(argv[j++]) : strdup("stdin");
 

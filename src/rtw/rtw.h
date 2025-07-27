@@ -2,15 +2,16 @@
 #define RETOOLS_RTW_H
 
 #include <stddef.h>
+#include <stdbool.h>
 
 #define RTW_DEFAULT_BUF_CAPACITY 1024
 #define RTW_DEFAULT_BUF_AND_ARRAY_CAPACITY 4
 
 typedef struct RTWFlags {
-  int cflag;
-  int mflag;
-  int lflag;
-  int wflag;
+  bool cflag;
+  bool mflag;
+  bool lflag;
+  bool wflag;
 } RTWFlags;
 
 typedef struct RTWResult {

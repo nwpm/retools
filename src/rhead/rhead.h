@@ -4,9 +4,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#define RTW_DEFAULT_BUF_CAPACITY 1024
-#define RTW_DEFAULT_BUF_AND_ARRAY_CAPACITY 4
-
 typedef struct RHeadOptions {
   bool cflag;
   const char* cflag_param;

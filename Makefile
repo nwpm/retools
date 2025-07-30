@@ -13,7 +13,7 @@ SRC_DIR = src
 
 # === TARGETS ===
 
-.PHONY: rtw rcat rhead unity clbuild
+.PHONY: rtw rcat rhead rtail unity clbuild
 
 rtw:
 	$(MAKE) -C src/rtw
@@ -23,6 +23,9 @@ rcat:
 
 rhead:
 	$(MAKE) -C src/rhead
+
+rtail:
+	$(MAKE) -C src/rtail
 
 unity: $(UNITY_BUILD)
 	cd $(UNITY_BUILD) && cmake ../../$(UNITY_DIR)

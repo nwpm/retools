@@ -26,7 +26,7 @@ static const char *HELP_TEXT =
     "    --help           display this help and exit\n"
     "    --version        output version information and exit\n";
 
-static const char *VERSION_TEXT = "rtcat (example implementation) 0.1.0\n"
+static const char *VERSION_TEXT = "rtw (example implementation) 0.1.0\n"
                                   "Written by nwpm.\n";
 
 typedef struct RtwOptions {

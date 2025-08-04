@@ -24,10 +24,10 @@ static const char *HELP_TEXT =
     "-w, --words          print the word counts\n"
     "-t, --total          print total info\n"
     "    --help           display this help and exit\n"
-    "    --version        output version information and exit\n";
+    "    --version        output version information and exit";
 
 static const char *VERSION_TEXT = "rtw (example implementation) 0.1.0\n"
-                                  "Written by nwpm.\n";
+                                  "Written by nwpm.";
 
 typedef struct RtwOptions {
   bool cflag;

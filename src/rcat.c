@@ -82,7 +82,7 @@ static int rcat_parse_flags_from_argv(const struct option *long_options,
       puts(VERSION_TEXT);
       return 1;
     case '?':
-      fprintf(stderr, "Try rtw --help for more information\n");
+      fprintf(stderr, "Try rcat --help for more information\n");
       return -1;
     }
   }

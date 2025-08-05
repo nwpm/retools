@@ -23,7 +23,6 @@ static const char *HELP_TEXT =
     "10;\n"
     "-q, --quiet             never print headers giving file names\n"
     "-v, --verbose           always print headers giving file names\n"
-    "-z, --zero-terminated   line delimiter is NUL, not newline\n"
     "    --help              display this help and exit\n"
     "    --version           output version information and exit";
 
